@@ -1,9 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
   const CONTAINER_SELECTOR = '.app-container';
-  const TEXT = 'XO';
+  const TEXT = 'HELLOWORLD';
   const CONTAINER = document.querySelector(CONTAINER_SELECTOR);
   const MAX_FONT_WEIGHT = 900;
   const MAX_DISTANCE = 400;
+  const MAX_FONT_LOAD_ATTEMPTS = 20;
+
+  let fontLoadAttempts = 0;
+  let allLetters;
+  let positions;
+  let fontLoaded = false;
 
   const throttle = (callback, interval) => {
     let enableCall = true;
@@ -39,11 +45,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!itw) {
       sc = generateTextBlock();
+      sc.style.opacity = '0';
       CONTAINER.appendChild(sc);
       itw = sc.offsetWidth;
     }
 
-    if (sc.offsetWidth === itw) {
+    if (sc.offsetWidth === itw && !fontLoaded && fontLoadAttempts < MAX_FONT_LOAD_ATTEMPTS) {
       setTimeout(() => {
         checkForFontLoad({
           callback: callback,
@@ -52,19 +59,70 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }, 100);
     } else {
+      fontLoaded = true;
+
       callback({
         sizingContainerWidth: sc.offsetWidth,
         sizingContainerHeight:
         sc.offsetHeight,
       });
 
-      CONTAINER.removeChild(sc);
+      if (sc.parentNode) {
+        sc.parentNode.removeChild(sc);
+      }
     }
+
+    fontLoadAttempts++;
   }
 
+  const animateLetters = (inputX, inputY) => {
+    positions.forEach((position, index) => {
+      const horizontalDistance = inputX - position.x;
+      const verticalDistance = inputY - position.y;
+      const totalDistance = Math.sqrt(Math.pow(horizontalDistance, 2) + Math.pow(verticalDistance, 2));
+
+      if (totalDistance < MAX_DISTANCE) {
+        let fontWeight = (MAX_FONT_WEIGHT - (totalDistance * 3));
+        if (fontWeight < 300) {
+          fontWeight = 300;
+        }
+
+        allLetters[index].style.fontWeight = fontWeight;
+      } else {
+        if (allLetters[index].style.fontWeight > 300) {
+          allLetters[index].style.fontWeight = 300;
+        }
+      }      
+    })
+  }
+
+  const mouseMoveHandler = throttle((e) => {
+    animateLetters(e.clientX, e.clientY);
+  }, 50);
+
+  const touchStartHandler = (e) => {
+    const changes = e.changedTouches;
+    animateLetters(changes[0].clientX, changes[0].clientY);
+  };
+
+  const touchEndHandler = () => {
+    animateLetters(-10, -10);
+  };
+
+  const touchMoveHandler = throttle((e) => {
+    const changes = e.changedTouches;
+    animateLetters(changes[0].clientX, changes[0].clientY);
+    e.preventDefault();
+  }, 10);
+
   const init = () => {
-    const allLetters = document.querySelectorAll('.letter');
-    const positions = [];
+    CONTAINER.removeEventListener('mousemove', mouseMoveHandler);
+    CONTAINER.removeEventListener('touchstart', touchStartHandler);
+    CONTAINER.removeEventListener('touchmove', touchMoveHandler);
+    CONTAINER.removeEventListener('touchend', touchEndHandler);
+
+    allLetters = document.querySelectorAll('.letter');
+    positions = [];
 
     allLetters.forEach((letter) => {
       const rect = letter.getBoundingClientRect();
@@ -75,29 +133,14 @@ document.addEventListener('DOMContentLoaded', () => {
       positions.push({ x: centerLeft, y: centerTop });
     })
 
-    CONTAINER.addEventListener('mousemove', throttle((e) => {
-      positions.forEach((position, index) => {
-        const horizontalDistance = e.clientX - position.x;
-        const verticalDistance = e.clientY - position.y;
-        const totalDistance = Math.sqrt(Math.pow(horizontalDistance, 2) + Math.pow(verticalDistance, 2));
-
-        if (totalDistance < MAX_DISTANCE) {
-          let fontWeight = (MAX_FONT_WEIGHT - (totalDistance * 3));
-          if (fontWeight < 300) {
-            fontWeight = 300;
-          }
-  
-          allLetters[index].style.fontWeight = fontWeight;
-        } else {
-          if (allLetters[index].style.fontWeight > 300) {
-            allLetters[index].style.fontWeight = 300;
-          }
-        }      
-      })
-    }, 50));
+    CONTAINER.addEventListener('mousemove', mouseMoveHandler);
+    CONTAINER.addEventListener('touchstart', touchStartHandler);
+    CONTAINER.addEventListener('touchmove', touchMoveHandler);
+    CONTAINER.addEventListener('touchend', touchEndHandler);
   }
 
   const layoutText = ({ sizingContainerWidth, sizingContainerHeight }) => {
+    CONTAINER.innerHTML = '';
     const numRows = Math.ceil(CONTAINER.offsetHeight / sizingContainerHeight);
     const numColumns = Math.ceil(CONTAINER.offsetWidth / sizingContainerWidth);
     let rowInc = 0;
@@ -134,5 +177,10 @@ document.addEventListener('DOMContentLoaded', () => {
     init();
   }
 
+  const resizeHandler = throttle(() => {
+    checkForFontLoad({ callback: layoutText });
+  }, 10);
+
+  window.addEventListener('resize', resizeHandler);
   checkForFontLoad({ callback: layoutText });
 });

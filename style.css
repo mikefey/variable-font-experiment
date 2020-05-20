@@ -88,10 +88,17 @@ select {
   }
 }
 
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
 body {
   font-size: 5rem;
-  height: 100%;
-  line-height: 4rem;
+  line-height: 5rem;
   position: absolute;
   width: 100%;
 }
@@ -115,6 +122,7 @@ body {
 .text-block {
   position: absolute;
   user-select: none;
+  white-space: nowrap;
 }
 
 .letter {
