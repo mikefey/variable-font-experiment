@@ -3,7 +3,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const TEXT = 'HELLOWORLD';
   const CONTAINER = document.querySelector(CONTAINER_SELECTOR);
   const MAX_FONT_WEIGHT = 900;
-  const MAX_DISTANCE = 400;
+  const MAX_DISTANCE = 500;
+  const MAX_DISTANCE_LARGE = 400;
   const MAX_FONT_LOAD_ATTEMPTS = 20;
 
   let fontLoadAttempts = 0;
@@ -80,9 +81,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const horizontalDistance = inputX - position.x;
       const verticalDistance = inputY - position.y;
       const totalDistance = Math.sqrt(Math.pow(horizontalDistance, 2) + Math.pow(verticalDistance, 2));
+      const distanceDiv = window.innerWidth < 700 ? 2 : 3;
+      const maxDistance = window.innerWidth < 700 ? MAX_DISTANCE : MAX_DISTANCE_LARGE;
 
       if (totalDistance < MAX_DISTANCE) {
-        let fontWeight = (MAX_FONT_WEIGHT - (totalDistance * 3));
+        let fontWeight = (MAX_FONT_WEIGHT - (totalDistance * distanceDiv));
         if (fontWeight < 300) {
           fontWeight = 300;
         }
